@@ -1,0 +1,7 @@
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
+firebase.initializeApp({apiKey:"AIzaSyAUBM7TGXDxti-ve9RCD4u40G44qaSnmQA",authDomain:"project-management-il.firebaseapp.com",projectId:"project-management-il",storageBucket:"project-management-il.firebasestorage.app",messagingSenderId:"1080251277636",appId:"1:1080251277636:web:e7f6b1cf83daf144daf711"});
+const messaging=firebase.messaging();
+messaging.onBackgroundMessage(payload=>{
+  self.registration.showNotification(payload.notification?.title||'התראה',{body:payload.notification?.body||'',icon:'/icons/icon-192.png',data:payload.data});
+});

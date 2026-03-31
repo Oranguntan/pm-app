@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#1a1f2e"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="ניהול פרויקטים"/>
+<title>מערכת ניהול פרויקטים</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0f1219;--bg2:#1a1f2e;--bg3:#232a3b;--bg4:#2d3550;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text:#f0f2f7;--text2:#8892a8;--text3:#5a6278;
+  --accent:#4f8ef7;--green:#2ecc8a;--red:#f05252;--amber:#f5a623;--purple:#a78bfa;
+  --radius:12px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo',sans-serif;font-size:15px;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-title{font-size:16px;font-weight:700}
+.topbar-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.user-chip{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--text2);cursor:pointer;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+.sync-dot.off{background:var(--amber);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.nav{display:flex;background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0}
+.nb{flex:1;padding:9px 3px 11px;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;background:none;color:var(--text3);font-family:'Heebo',sans-serif;font-size:9px;cursor:pointer;position:relative}
+.nb.active{color:var(--accent)}
+.nb.active::after{content:'';position:absolute;top:0;left:15%;right:15%;height:2px;background:var(--accent);border-radius:0 0 2px 2px}
+.nb-icon{font-size:18px;line-height:1}
+.nb-badge{position:absolute;top:5px;right:calc(50% - 17px);background:var(--red);color:#fff;font-size:8px;font-weight:700;border-radius:8px;padding:1px 5px;min-width:14px;text-align:center;line-height:1.4}
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:14px}
+.page{display:none}.page.active{display:block}
+
+/* AUTH */
+.auth-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+.auth-screen.hidden{display:none}
+.auth-logo{font-size:50px;margin-bottom:12px}
+.auth-title{font-size:21px;font-weight:700;margin-bottom:4px;text-align:center}
+.auth-sub{font-size:13px;color:var(--text2);margin-bottom:24px;text-align:center;line-height:1.5}
+.auth-card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;width:100%;max-width:340px}
+.auth-card-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--text)}
+.auth-input{width:100%;padding:11px 13px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Heebo',sans-serif;font-size:14px;outline:none;margin-bottom:10px;text-align:right}
+.auth-input:focus{border-color:var(--accent)}
+.role-row{display:flex;gap:8px;margin-bottom:14px}
+.role-btn{flex:1;padding:10px 6px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;text-align:center;line-height:1.5;transition:all 0.2s}
+.role-btn.sel{background:rgba(79,142,247,0.12);border-color:var(--accent);color:var(--accent);font-weight:600}
+.auth-btn{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px}
+.auth-btn.sec{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.auth-link{font-size:13px;color:var(--accent);text-align:center;cursor:pointer;margin-top:6px}
+.auth-error{background:rgba(240,82,82,0.1);border:1px solid rgba(240,82,82,0.25);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--red);margin-bottom:10px;display:none}
+.auth-error.show{display:block}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.bg-green{background:rgba(46,204,138,0.14);color:#2ecc8a;border:1px solid rgba(46,204,138,0.22)}
+.bg-red{background:rgba(240,82,82,0.14);color:#f05252;border:1px solid rgba(240,82,82,0.22)}
+.bg-amber{background:rgba(245,166,35,0.14);color:#f5a623;border:1px solid rgba(245,166,35,0.22)}
+.bg-blue{background:rgba(79,142,247,0.14);color:#4f8ef7;border:1px solid rgba(79,142,247,0.22)}
+.bg-purple{background:rgba(167,139,250,0.14);color:#a78bfa;border:1px solid rgba(167,139,250,0.22)}
+.bg-gray{background:rgba(255,255,255,0.05);color:var(--text2);border:1px solid var(--border)}
+
+/* PROJECT ROWS */
+.proj-row{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:9px;cursor:pointer;border-right:3px solid transparent;transition:background 0.15s}
+.proj-row:active{background:var(--bg3)}
+.proj-row.exc{border-right-color:var(--red)}
+.proj-row.frz{border-right-color:var(--purple)}
+.proj-row.pend{border-right-color:var(--amber)}
+.proj-name{font-weight:700;font-size:14px;margin-bottom:3px}
+.proj-meta{font-size:11px;color:var(--text2);margin-bottom:7px}
+.proj-tags{display:flex;flex-wrap:wrap;gap:4px}
+.proj-owner{font-size:10px;color:var(--text3);margin-top:5px}
+.progress-wrap{background:var(--bg4);border-radius:4px;height:6px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:4px}
+
+/* STATS */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.stat{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 10px;text-align:center}
+.stat-val{font-size:26px;font-weight:700;line-height:1}
+.stat-lbl{font-size:10px;color:var(--text2);margin-top:3px}
+.sv-blue{color:var(--accent)}.sv-green{color:var(--green)}.sv-red{color:var(--red)}.sv-amber{color:var(--amber)}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.chart-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px;text-align:center}
+.chart-lbl{font-size:9px;color:var(--text2);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em}
+.sec{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin:14px 0 8px}
+.filter-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;margin-bottom:12px;scrollbar-width:none}
+.filter-row::-webkit-scrollbar{display:none}
+.chip{padding:5px 12px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:11px;white-space:nowrap;cursor:pointer;flex-shrink:0;font-family:'Heebo',sans-serif}
+.chip.active{background:rgba(79,142,247,0.14);border-color:rgba(79,142,247,0.4);color:var(--accent)}
+.mgr-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.mgr-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:13px;text-align:center}
+.mgr-name{font-size:12px;font-weight:700;margin-bottom:5px}
+.mgr-num{font-size:30px;font-weight:700;color:var(--accent);line-height:1}
+.mgr-sub{font-size:10px;color:var(--text2);margin:2px 0 7px}
+
+/* FORMS */
+.form-sec{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(79,142,247,0.2);display:flex;align-items:center;gap:6px}
+.fr{margin-bottom:10px}
+.fr label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600}
+.fr input,.fr select,.fr textarea{width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Heebo',sans-serif;font-size:13px;outline:none;-webkit-appearance:none}
+.fr input:focus,.fr select:focus,.fr textarea:focus{border-color:var(--accent)}
+.fr textarea{resize:vertical;min-height:64px}
+.fr select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238892a8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left 10px center;padding-left:28px}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.toggle-group{display:flex;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border2)}
+.toggle-btn{flex:1;padding:9px 6px;text-align:center;font-size:12px;font-family:'Heebo',sans-serif;cursor:pointer;background:var(--bg3);color:var(--text2);border:none;border-left:1px solid var(--border2);transition:all 0.2s}
+.toggle-btn:first-child{border-left:none}
+.toggle-btn.sel-gray{background:var(--bg4);color:var(--text2);font-weight:600}
+.toggle-btn.sel-amber{background:rgba(245,166,35,0.18);color:var(--amber);font-weight:600}
+.toggle-btn.sel-green{background:rgba(46,204,138,0.18);color:var(--green);font-weight:600}
+.cube-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:4px}
+.cube-title{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em}
+.blocker-item{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:7px;border-right:3px solid var(--red);display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.blocker-text{font-size:13px;flex:1;color:var(--text)}
+.blocker-del{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1}
+.blocker-input-row{display:flex;gap:7px;margin-bottom:4px}
+.blocker-input-row input{flex:1;padding:9px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Heebo',sans-serif;font-size:13px;outline:none}
+.blocker-input-row input:focus{border-color:var(--red)}
+.blocker-add-btn{padding:9px 14px;background:rgba(240,82,82,0.1);border:1px solid rgba(240,82,82,0.28);border-radius:var(--radius-sm);color:var(--red);font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:11px 16px;border-radius:var(--radius-sm);font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:transform 0.1s}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:var(--accent);color:#fff;width:100%}
+.btn-secondary{background:var(--bg3);border:1px solid var(--border2);color:var(--text);width:100%}
+.btn-danger{background:rgba(240,82,82,0.1);border:1px solid rgba(240,82,82,0.28);color:var(--red)}
+.btn-amber{background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.28);color:var(--amber)}
+.btn-sm{padding:6px 12px;font-size:12px;width:auto}
+.btn-row{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap}
+.fab{position:fixed;bottom:76px;left:18px;width:50px;height:50px;border-radius:50%;background:var(--accent);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(79,142,247,0.45);border:none;cursor:pointer;z-index:40}
+.fab:active{transform:scale(0.91)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:100;display:none;align-items:flex-end}
+#modal-add.open{z-index:150}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-height:94vh;overflow-y:auto;padding:18px 15px 40px;border-top:1px solid var(--border2)}
+.modal-handle{width:36px;height:3px;background:var(--bg4);border-radius:2px;margin:0 auto 14px}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:3px}
+.det-section{margin-bottom:14px}
+.det-section-title{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(79,142,247,0.18)}
+.det-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)}
+.det-row:last-child{border:none}
+.det-key{font-size:12px;color:var(--text2);flex-shrink:0;padding-left:12px;min-width:110px}
+.det-val{font-size:12px;font-weight:500}
+.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.det-mini{background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center}
+.det-mini-val{font-size:16px;font-weight:700;margin-bottom:2px}
+.det-mini-lbl{font-size:10px;color:var(--text2)}
+.hist-item{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:7px;border-right:3px solid var(--amber)}
+.hist-date-lbl{font-size:10px;color:var(--text3);margin-bottom:3px}
+.hist-body{font-size:12px;color:var(--text)}
+.hist-approved{font-size:11px;color:var(--green);margin-top:4px}
+.pending-card{background:rgba(245,166,35,0.06);border:1px solid rgba(245,166,35,0.22);border-radius:var(--radius);padding:13px;margin-bottom:9px}
+.pending-reason{font-size:12px;color:var(--text);background:var(--bg3);border-radius:6px;padding:8px 10px;margin-bottom:9px;border-right:3px solid var(--amber)}
+.notif-row{background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.2);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:7px;display:flex;gap:8px;align-items:flex-start}
+.notif-txt{font-size:12px;line-height:1.5}
+.notif-txt strong{color:var(--amber)}
+.offline-bar{background:rgba(245,166,35,0.1);border-bottom:1px solid rgba(245,166,35,0.22);color:var(--amber);font-size:11px;text-align:center;padding:5px;display:none}
+.offline-bar.show{display:block}
+.toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 18px;font-size:12px;color:var(--text);z-index:300;opacity:0;transition:all 0.3s;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.empty-state{text-align:center;padding:44px 20px;color:var(--text3)}
+.num-display{color:var(--green);font-weight:600}
+.empty-icon{font-size:44px;margin-bottom:10px}
+.cubes2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+/* NOTIFICATIONS PAGE */
+.notif-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;cursor:pointer;transition:background 0.2s}
+.notif-item.unread{background:rgba(79,142,247,0.06);border-color:rgba(79,142,247,0.25)}
+.notif-item:active{background:var(--bg3)}
+.notif-icon{font-size:20px;flex-shrink:0;line-height:1}
+.notif-content{flex:1;min-width:0}
+.notif-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.notif-item.unread .notif-title{font-weight:700}
+.notif-body{font-size:12px;color:var(--text2);margin-bottom:3px;line-height:1.4}
+.notif-time{font-size:10px;color:var(--text3)}
+.notif-badge{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px}
+.nav-badge{position:absolute;top:2px;right:4px;width:8px;height:8px;border-radius:50%;background:#f05252;border:2px solid var(--bg)}
+
+/* MANAGERS PAGE */
+.mgr-section-header{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid rgba(79,142,247,0.2)}
+.mgr-person-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center}
+.mgr-person-name{font-size:13px;font-weight:700;color:var(--text)}
+.mgr-person-role{font-size:11px;color:var(--text2);margin-top:2px}
+.mgr-person-count{text-align:center;flex-shrink:0}
+.mgr-person-num{font-size:22px;font-weight:700;color:var(--accent);line-height:1}
+.mgr-person-lbl{font-size:9px;color:var(--text3)}
+.mgr-add-btn{width:100%;padding:11px;background:rgba(79,142,247,0.07);border:1px dashed rgba(79,142,247,0.3);border-radius:var(--radius-sm);text-align:center;font-size:13px;color:var(--accent);cursor:pointer;margin-top:8px;font-family:'Heebo',sans-serif}
+.step-opts{display:flex;gap:8px;margin-bottom:4px}
+.step-opt{flex:1;padding:10px 8px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:13px;cursor:pointer;text-align:center;font-family:'Heebo',sans-serif;transition:all 0.2s}
+.step-opt.sel{background:rgba(79,142,247,0.14);border-color:var(--accent);color:var(--accent);font-weight:700}
+.result-preview-box{background:rgba(46,204,138,0.07);border:1px solid rgba(46,204,138,0.2);border-radius:var(--radius-sm);padding:10px 13px;margin:10px 0}
+
+/* ROLE SEARCH SELECTOR */
+.role-search-wrap{position:relative;margin-bottom:4px}
+.role-search-input{width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Heebo',sans-serif;font-size:13px;outline:none}
+.role-search-input:focus{border-color:var(--accent)}
+.role-dropdown{position:absolute;top:100%;right:0;left:0;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);z-index:200;max-height:180px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4);display:none}
+.role-dropdown.open{display:block}
+.role-dropdown-item{padding:9px 12px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:1px solid var(--border)}
+.role-dropdown-item:last-child{border:none}
+.role-dropdown-item:hover,.role-dropdown-item:active{background:var(--bg4)}
+.role-dropdown-item.add-new{color:var(--green);font-weight:600}
+.role-dropdown-item.selected{color:var(--accent);font-weight:600}
+.role-selected-val{font-size:11px;color:var(--accent);margin-top:3px;padding-right:2px}
+
+/* SETTINGS PAGE */
+.settings-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.settings-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border:none}
+.settings-label{font-size:13px;color:var(--text)}
+.settings-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--bg4);border-radius:24px;transition:0.3s}
+.toggle-slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:0.3s}
+input:checked+.toggle-slider{background:var(--accent)}
+input:checked+.toggle-slider:before{transform:translateX(20px)}
+
+/* FAVORITES */
+.fav-btn{background:none;border:none;font-size:18px;cursor:pointer;padding:2px;line-height:1;flex-shrink:0}
+.fav-btn:active{transform:scale(1.3)}
+
+/* MY/ALL TOGGLE */
+.scope-toggle{display:flex;background:var(--bg3);border-radius:var(--radius-sm);padding:3px;gap:3px;margin-bottom:10px}
+.scope-btn{flex:1;padding:6px;border-radius:6px;border:none;font-family:'Heebo',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--text2)}
+.scope-btn.active{background:var(--accent);color:#fff}
+
+/* TRAFFIC LIGHTS */
+.tl-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.tl-row:last-child{border:none}
+.tl-name{font-size:11px;color:var(--text2);width:80px;flex-shrink:0}
+.tl-bar{flex:1;height:8px;background:var(--bg4);border-radius:4px;overflow:hidden}
+.tl-fill{height:100%;border-radius:4px;transition:width 0.5s}
+.tl-light{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.tl-days{font-size:11px;font-weight:600;min-width:60px;text-align:left}
+
+/* FILTER ADVANCED */
+.filter-advanced{margin-bottom:12px}
+.filter-active-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;min-height:0}
+.ftag{padding:4px 10px;border-radius:20px;font-size:11px;background:rgba(79,142,247,0.14);border:1px solid rgba(79,142,247,0.3);color:var(--accent);cursor:pointer}
+.filter-group{margin-bottom:8px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.filter-group-header{padding:9px 12px;background:var(--bg3);display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2)}
+.filter-group-body{background:var(--bg3);padding:8px 12px;border-top:1px solid var(--border);display:none}
+.filter-group-body.open{display:block}
+.filter-option{display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:12px;color:var(--text2)}
+.filter-checkbox{width:14px;height:14px;border-radius:3px;border:1px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff}
+.filter-checkbox.checked{background:var(--accent);border-color:var(--accent)}
+
+/* TASKS */
+.task-item{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:6px;border-right:3px solid var(--accent)}
+.task-item.done{border-right-color:var(--green);opacity:0.7}
+.task-item.overdue{border-right-color:var(--red)}
+.task-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.task-meta{font-size:11px;color:var(--text2)}
+.add-task-btn{background:rgba(79,142,247,0.07);border:1px dashed rgba(79,142,247,0.3);border-radius:var(--radius-sm);padding:10px;text-align:center;font-size:13px;color:var(--accent);cursor:pointer;margin-top:4px}
+
+/* DOCS */
+.doc-item{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.doc-icon{font-size:20px;flex-shrink:0}
+.doc-name{font-size:12px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-size{font-size:10px;color:var(--text3);flex-shrink:0}
+.doc-del{font-size:16px;color:var(--text3);cursor:pointer;flex-shrink:0;padding:0 4px}
+.upload-zone{background:rgba(79,142,247,0.06);border:1px dashed rgba(79,142,247,0.3);border-radius:var(--radius-sm);padding:14px;text-align:center;font-size:13px;color:var(--accent);cursor:pointer;margin-top:4px}
+
+/* STATUTORY */
+.statutory-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;border-right:3px solid var(--purple)}
+.statutory-text{font-size:13px;color:var(--text);line-height:1.6;min-height:60px}
+
+/* REMINDERS */
+.bell-btn{width:32px;height:32px;border-radius:50%;background:rgba(79,142,247,0.12);border:1px solid rgba(79,142,247,0.28);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;flex-shrink:0}
+.bell-btn.has-reminders{background:rgba(245,166,35,0.15);border-color:rgba(245,166,35,0.35)}
+.rem-item{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;border-right:3px solid var(--accent)}
+.rem-text{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.rem-meta{font-size:11px;color:var(--text2)}
+.rem-del{font-size:18px;color:var(--text3);cursor:pointer;flex-shrink:0;line-height:1}
+.repeat-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.repeat-chip{padding:5px 12px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:12px;cursor:pointer;font-family:'Heebo',sans-serif}
+.repeat-chip.sel{background:rgba(79,142,247,0.14);border-color:var(--accent);color:var(--accent);font-weight:600}
+
+/* PIE CHARTS FIX - scrollable */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}.chart-card{min-width:0;overflow:hidden}
+
+/* GANTT */
+.gantt-section{margin-top:14px}
+.gantt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.gantt-inner{min-width:320px}
+.gantt-months-row{display:flex;padding-right:0;margin-bottom:3px}
+.gantt-phase-col{width:72px;flex-shrink:0}
+.gantt-months{flex:1;display:flex}
+.gantt-month-cell{flex:1;text-align:center;font-size:7px;color:var(--text3);border-left:1px solid var(--border);padding:2px 0}
+.gantt-row{display:flex;align-items:center;margin-bottom:5px;position:relative}
+.gantt-name{width:72px;flex-shrink:0;font-size:9px;color:var(--text2);text-align:right;padding-left:6px}
+.gantt-track{flex:1;height:18px;position:relative;display:flex;background:transparent}
+.gantt-track-cell{flex:1;height:18px;border-left:1px solid var(--border)}
+.gantt-bar{position:absolute;height:18px;border-radius:4px;display:flex;align-items:center;padding:0 5px;z-index:2}
+.gantt-bar-label{font-size:7px;font-weight:700;color:rgba(255,255,255,0.95);white-space:nowrap;overflow:hidden}
+.gantt-today{position:absolute;top:0;bottom:0;width:2px;background:rgba(240,82,82,0.75);z-index:3;pointer-events:none}
+.gantt-legend{display:flex;gap:10px;margin-top:8px;padding-top:6px;border-top:1px solid var(--border);flex-wrap:wrap}
+.gantt-legend-item{display:flex;align-items:center;gap:4px;font-size:8px;color:var(--text3)}
+.gantt-legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.ms-list{margin-top:12px}
+.ms-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.ms-item:last-child{border:none}
+.ms-left{display:flex;align-items:center;gap:7px}
+.ms-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ms-name{font-size:11px;color:var(--text2)}
+.ms-name.done{color:var(--text3);text-decoration:line-through}
+.ms-date{font-size:11px;font-weight:600}
+.ms-check{font-size:10px;color:var(--green);margin-right:4px}
+
+</style>
+</head>
+<body>
+
+<!-- REGISTER -->
+<div class="auth-screen" id="screen-register">
+  <div class="auth-logo">🏗️</div>
+  <div class="auth-title">מערכת ניהול פרויקטים</div>
+  <div class="auth-sub">צור חשבון חדש</div>
+  <div class="auth-card" style="max-width:360px">
+    <div class="auth-card-title">הרשמה</div>
+    <div class="auth-error" id="reg-error"></div>
+    <input class="auth-input" id="reg-email" type="email" placeholder="אימייל" dir="ltr"/>
+    <input class="auth-input" id="reg-pass" type="password" placeholder="סיסמא (לפחות 6 תווים)" dir="ltr"/>
+    <input class="auth-input" id="reg-pass2" type="password" placeholder="אימות סיסמא" dir="ltr"/>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:600">ענף</div>
+    <div class="role-row" style="gap:8px;margin-bottom:12px">
+      <button class="role-btn sel" id="reg-branch-binui" onclick="selectRegBranch('binui')">🏗️<br><span style="font-size:11px">בינוי</span></button>
+      <button class="role-btn" id="reg-branch-tashtiot" onclick="selectRegBranch('tashtiot')">⚡<br><span style="font-size:11px">תשתיות</span></button>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:600">בחר תפקיד</div>
+    <div id="reg-role-list" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);max-height:160px;overflow-y:auto;margin-bottom:8px"></div>
+    <div id="reg-add-role-wrap" style="background:rgba(46,204,138,0.06);border:1px solid rgba(46,204,138,0.2);border-radius:var(--radius-sm);padding:8px 10px;margin-bottom:8px">
+      <div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:6px">+ הוסף תפקיד חדש</div>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <button class="step-opt sel" id="reg-rank-raen" onclick="selectRegRank('raen')">רע"ן</button>
+        <button class="step-opt" id="reg-rank-ramd" onclick="selectRegRank('ramd')">רמ"ד</button>
+        <button class="step-opt" id="reg-rank-ramah" onclick="selectRegRank('ramah')">רמ"ח</button>
+      </div>
+      <input id="reg-new-role-name" class="auth-input" placeholder="הקלד שם..." style="margin-bottom:6px"/>
+      <button onclick="addNewRoleFromReg()" style="width:100%;padding:8px;background:rgba(46,204,138,0.15);border:1px solid rgba(46,204,138,0.3);border-radius:var(--radius-sm);color:var(--green);font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;cursor:pointer">הוסף לרשימה</button>
+    </div>
+    <div id="reg-preview" style="display:none;background:rgba(46,204,138,0.07);border:1px solid rgba(46,204,138,0.2);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:10px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:2px">התפקיד שלך:</div>
+      <div style="font-size:14px;font-weight:700;color:var(--green)" id="reg-preview-text"></div>
+    </div>
+    <button class="auth-btn" onclick="doRegister()">צור חשבון ←</button>
+    <div class="auth-link" onclick="gotoLogin()">כבר יש לי חשבון — כניסה</div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="auth-screen hidden" id="screen-login">
+  <div class="auth-logo">🏗️</div>
+  <div class="auth-title">מערכת ניהול פרויקטים</div>
+  <div class="auth-sub">כניסה לחשבון</div>
+  <div class="auth-card">
+    <div class="auth-card-title">כניסה</div>
+    <div class="auth-error" id="login-error"></div>
+    <input class="auth-input" id="login-email" type="email" placeholder="אימייל" dir="ltr"/>
+    <input class="auth-input" id="login-pass" type="password" placeholder="סיסמא" dir="ltr"/>
+    <button class="auth-btn" onclick="doLogin()">כניסה ←</button>
+    <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px;background:var(--bg3);border-radius:var(--radius-sm)">שכחת סיסמא? פנה למנהל המערכת לאיפוס</div>
+    <div class="auth-link" onclick="gotoRegister()">אין לי חשבון — הרשמה</div>
+  </div>
+</div>
+
+<div class="offline-bar" id="offline-bar">⚡ לא מקוון — יסתנכרן כשתחזור לרשת</div>
+
+<div id="app" style="display:none">
+  <div class="topbar">
+    <div><div class="topbar-title">ניהול פרויקטים</div><div class="topbar-sub" id="topbar-sub">טוען...</div></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="bell-btn" id="bell-btn" onclick="openReminders()">🔔</div>
+      <div id="admin-badge" style="display:none;background:rgba(240,82,82,0.15);border:1px solid rgba(240,82,82,0.3);border-radius:20px;padding:3px 8px;font-size:10px;color:var(--red);font-weight:700">ADMIN</div>
+      <div class="user-chip" id="user-chip" onclick="logout()"></div>
+      <div class="sync-dot" id="sync-dot"></div>
+    </div>
+  </div>
+  <div class="scroll" id="scroll">
+    <div class="page active" id="page-dash">
+      <div id="notif-area"></div>
+      <div class="stat-grid" id="dash-stats"></div>
+      <div class="charts-grid">
+        <div class="chart-card"><div class="chart-lbl">לפי שלב</div><canvas id="chart-stage" height="100"></canvas><div id="chart-stage-legend" style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:4px"></div></div>
+        <div class="chart-card"><div class="chart-lbl">לפי סטטוס</div><canvas id="chart-status" height="100"></canvas><div id="chart-status-legend" style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:4px"></div></div>
+        <div class="chart-card"><div class="chart-lbl">לפי מנהל</div><canvas id="chart-loc" height="100"></canvas><div id="chart-loc-legend" style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:4px"></div></div>
+        <div class="chart-card"><div class="chart-lbl">תקציב מומש</div><canvas id="chart-budget" height="100"></canvas><div id="chart-budget-legend" style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:4px"></div></div>
+      </div>
+      <div class="sec" id="frz-hdr">מוקפאים ❄️</div><div id="frz-list"></div>
+    </div>
+    <div class="page" id="page-projects">
+      <div style="position:relative;margin-bottom:10px">
+        <input id="proj-search" placeholder="🔍 חיפוש לפי שם, בסיס, שלב, קפ&quot;ט..." 
+          style="width:100%;padding:10px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Heebo',sans-serif;font-size:13px;outline:none"
+          oninput="renderProjects()"/>
+        <div id="search-clear" onclick="clearSearch()" style="display:none;position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);cursor:pointer;font-size:16px">×</div>
+      </div>
+      <div class="scope-toggle">
+        <button class="scope-btn active" id="scope-mine" onclick="setScope('mine')">הפרויקטים שלי</button>
+        <button class="scope-btn" id="scope-all" onclick="setScope('all')">כל הפרויקטים</button>
+      </div>
+      <div class="filter-advanced">
+        <div class="filter-active-tags" id="active-filter-tags"></div>
+        <div class="filter-group" id="fg-fav">
+          <div class="filter-group-header" onclick="toggleFG('fav')">❤️ מועדפים <span id="fg-fav-arrow">▶</span></div>
+          <div class="filter-group-body" id="fg-fav-body"></div>
+        </div>
+        <div class="filter-group" id="fg-base">
+          <div class="filter-group-header" onclick="toggleFG('base')">🏠 בסיס <span id="fg-base-arrow">▶</span></div>
+          <div class="filter-group-body" id="fg-base-body"></div>
+        </div>
+        <div class="filter-group" id="fg-stage">
+          <div class="filter-group-header" onclick="toggleFG('stage')">שלב פרויקטלי <span id="fg-stage-arrow">▶</span></div>
+          <div class="filter-group-body" id="fg-stage-body"></div>
+        </div>
+        <div class="filter-group" id="fg-kapt">
+          <div class="filter-group-header" onclick="toggleFG('kapt')">קפ"ט בינוי <span id="fg-kapt-arrow">▶</span></div>
+          <div class="filter-group-body" id="fg-kapt-body"></div>
+        </div>
+        <div class="filter-group" id="fg-integ">
+          <div class="filter-group-header" onclick="toggleFG('integ')">אינטגרטור תשתיות <span id="fg-integ-arrow">▶</span></div>
+          <div class="filter-group-body" id="fg-integ-body"></div>
+        </div>
+        <div class="filter-group" id="fg-status">
+          <div class="filter-group-header" onclick="toggleFG('status')">סטטוס <span id="fg-status-arrow">▶</span></div>
+          <div class="filter-group-body" id="fg-status-body"></div>
+        </div>
+      </div>
+      <div id="proj-list"></div>
+    </div>
+    <div class="page" id="page-pending"><div id="pending-list"></div></div>
+    <div class="page" id="page-managers">
+      <div id="mgr-persons-list"></div>
+      <div id="mgr-stats-section" style="margin-top:14px"></div>
+      <button class="mgr-add-btn" onclick="openAddPerson()">+ הוסף בעל תפקיד</button>
+    </div>
+    <div class="page" id="page-delivered"><div id="delivered-list"></div></div>
+    <div class="page" id="page-notifs">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:16px;font-weight:700;color:var(--text)">🔔 התראות</div>
+        <button onclick="markAllRead()" style="font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:'Heebo',sans-serif">סמן הכל כנקרא</button>
+      </div>
+      <div id="notifs-list"></div>
+    </div>
+    <div class="page" id="page-settings">
+      <div class="settings-section">
+        <div class="settings-title">🔔 התראות</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">התראות Push</div>
+            <div class="settings-sub">קבל התראות גם כשהאפליקציה סגורה</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="notif-toggle" onchange="toggleNotifications(this.checked)"/>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">חריגות בפרויקטים</div>
+            <div class="settings-sub">התראה כשפרויקט חורג מהתג"ב</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="notif-overdue" checked onchange="saveNotifPref('overdue',this.checked)"/>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">רמזורי אבני דרך</div>
+            <div class="settings-sub">התראה 20/40 ימים לפני סיום שלב</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="notif-milestones" checked onchange="saveNotifPref('milestones',this.checked)"/>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">משימות חדשות</div>
+            <div class="settings-sub">התראה כשמוקצית לך משימה חדשה</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="notif-tasks" checked onchange="saveNotifPref('tasks',this.checked)"/>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">👤 פרטי משתמש</div>
+        <div class="settings-row">
+          <div><div class="settings-label" id="settings-name"></div><div class="settings-sub" id="settings-email"></div></div>
+          <span class="badge bg-blue" id="settings-role"></span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">🏗️ אודות</div>
+        <div class="settings-row">
+          <div class="settings-label">גרסה</div>
+          <div style="font-size:12px;color:var(--text3)">v2.0</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-label">שרת</div>
+          <div style="font-size:12px;color:var(--green)">● מחובר</div>
+        </div>
+      </div>
+
+      <button class="btn btn-danger" style="width:100%;margin-top:4px" onclick="logout()">התנתק</button>
+    </div>
+  </div>
+  <nav class="nav">
+    <button class="nb active" onclick="switchPage('dash')" id="nav-dash"><span class="nb-icon">📊</span><span>דשבורד</span></button>
+    <button class="nb" onclick="switchPage('projects')" id="nav-projects"><span class="nb-icon">📋</span><span>פרויקטים</span></button>
+    <button class="nb" onclick="switchPage('pending')" id="nav-pending" style="display:none"><span class="nb-icon">🔔</span><span>אישורים</span></button>
+    <button class="nb" onclick="switchPage('managers')" id="nav-managers"><span class="nb-icon">👥</span><span>מנהלים</span></button>
+    <button class="nb" onclick="switchPage('delivered')" id="nav-delivered"><span class="nb-icon">✅</span><span>נמסרו</span></button>
+    <button class="nb" onclick="exportToExcel()" id="nav-export"><span class="nb-icon">📥</span><span>אקסל</span></button>
+    <button class="nb" onclick="switchPage('notifs')" id="nav-notifs"><span class="nb-icon">🔔</span><span id="notif-nav-lbl">התראות</span></button>
+    <button class="nb" onclick="switchPage('settings')" id="nav-settings"><span class="nb-icon">⚙️</span><span>הגדרות</span></button>
+  </nav>
+</div>
+
+<button class="fab" id="fab" onclick="openAddModal()" style="display:none">+</button>
+
+<!-- ADD/EDIT PROJECT -->
+<div class="modal-bg" id="modal-add">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <!-- Sticky X always visible -->
+    <div style="position:sticky;top:0;z-index:10;background:var(--bg2);padding:4px 0 8px;display:flex;justify-content:space-between;align-items:center">
+      <div class="modal-title" id="modal-add-title">פרויקט חדש</div>
+      <button onclick="closeModal('modal-add')" style="width:32px;height:32px;border-radius:50%;background:rgba(240,82,82,0.15);border:1px solid rgba(240,82,82,0.3);color:var(--red);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:4px">* שם פרויקט ושלב נוכחי בלבד חובה</div>
+    <div class="form-sec">🏷️ זיהוי פרויקט</div>
+    <div class="fr"><label>שם פרויקט *</label><input id="f-name" placeholder="שם הפרויקט"/></div>
+    <div class="fr"><label>בסיס</label>
+      <select id="f-base">
+        <option value="">בחר בסיס...</option>
+        <option value='בה"ד'>בה"ד</option>
+        <option value='מספנה'>מספנה</option>
+        <option value='ב"ח'>ב"ח</option>
+        <option value='עתלית'>עתלית</option>
+        <option value='בצ"ת'>בצ"ת</option>
+        <option value='מפח"י'>מפח"י</option>
+        <option value='אשדוד'>אשדוד</option>
+        <option value='זי"ס'>זי"ס</option>
+      </select>
+    </div>
+    <div class="fg2">
+      <div class="fr"><label>קפ"ט בינוי</label>
+        <select id="f-kapt">
+          <option value="">בחר מהרשימה...</option>
+        </select>
+      </div>
+      <div class="fr"><label>אינטגרטור תשתיות</label>
+        <select id="f-integrator">
+          <option value="">בחר מהרשימה...</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-sec">📍 שלב ולוח זמנים</div>
+    <div class="fr"><label>שלב נוכחי בפרויקט *</label>
+      <select id="f-stage">
+        <option value="">בחר שלב</option>
+        <option>ייזום</option><option>אישור רעיון מרכזי</option><option>דמ"צ</option>
+        <option>מסמך משמעויות</option><option>תכנון ראשוני</option><option>הקפאת תצורה</option>
+        <option>תכנון סופי</option><option>התקשרות</option><option>ביצוע</option>
+        <option>מסירה</option><option>קשר קווי</option><option>אכלוס ומסירה</option>
+      </select>
+    </div>
+    <div class="fg2">
+      <div class="fr"><label>תג"ב שלב נוכחי</label><input id="f-stage-due" type="date"/></div>
+      <div class="fr"><label>סטטוס</label>
+        <select id="f-status"><option>בביצוע</option><option>מוקפא</option><option>חריג</option><option>נמסר</option></select>
+      </div>
+    </div>
+    <div class="fg2">
+      <div class="fr"><label>תאריך תחילת ביצוע</label><input id="f-start" type="date"/></div>
+      <div class="fr"><label>תאריך גמר ביצוע</label><input id="f-end" type="date"/></div>
+    </div>
+    <div class="form-sec">💰 תקציב ועלויות</div>
+    <div class="fg2">
+      <div class="fr"><label>אומדן עלויות ש"ח</label><input id="f-est-nis" type="number" placeholder="₪"/></div>
+      <div class="fr"><label>אומדן עלויות ד"ס</label><input id="f-est-ds" type="number" placeholder="ד״ס"/></div>
+    </div>
+    <div class="form-sec">📅 אבני דרך <span style="color:var(--text3);font-size:10px;font-weight:400;text-transform:none;letter-spacing:0">(לא חובה)</span></div>
+    <div style="background:#1a1f2e;border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:6px;border-right:3px solid #4f8ef7">
+      <div style="font-size:12px;font-weight:700;color:#f0f2f7;margin-bottom:8px">🔵 ייזום</div>
+      <div class="fg2">
+        <div class="fr"><label>תאריך התחלה</label><input id="f-ms-yizum-start" type="date"/></div>
+        <div class="fr"><label>תאריך סיום</label><input id="f-ms-yizum-end" type="date"/></div>
+      </div>
+    </div>
+    <div style="background:#1a1f2e;border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:6px;border-right:3px solid #2ecc8a">
+      <div style="font-size:12px;font-weight:700;color:#f0f2f7;margin-bottom:8px">📐 תכנון</div>
+      <div class="fg2">
+        <div class="fr"><label>תאריך התחלה</label><input id="f-ms-tikhnun-start" type="date"/></div>
+        <div class="fr"><label>תאריך סיום</label><input id="f-ms-tikhnun-end" type="date"/></div>
+      </div>
+    </div>
+    <div style="background:#1a1f2e;border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:6px;border-right:3px solid #f5a623">
+      <div style="font-size:12px;font-weight:700;color:#f0f2f7;margin-bottom:8px">📋 התקשרות</div>
+      <div class="fg2">
+        <div class="fr"><label>תאריך התחלה</label><input id="f-ms-hitkashrut-start" type="date"/></div>
+        <div class="fr"><label>תאריך סיום</label><input id="f-ms-hitkashrut-end" type="date"/></div>
+      </div>
+    </div>
+    <div style="background:#1a1f2e;border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:6px;border-right:3px solid #a78bfa">
+      <div style="font-size:12px;font-weight:700;color:#f0f2f7;margin-bottom:8px">🏗️ ביצוע</div>
+      <div class="fg2">
+        <div class="fr"><label>תאריך התחלה</label><input id="f-ms-bitsu-start" type="date"/></div>
+        <div class="fr"><label>תאריך סיום</label><input id="f-ms-bitsu-end" type="date"/></div>
+      </div>
+    </div>
+    <div class="form-sec">⚠️ חסמים ונושאים לטיפול <span style="color:var(--text3);font-size:10px;font-weight:400;text-transform:none;letter-spacing:0">(לא חובה)</span></div>
+    <div id="blockers-list"></div>
+    <div class="blocker-input-row">
+      <input id="blocker-input" placeholder="הוסף חסם..." onkeydown="if(event.key==='Enter'){addBlocker();event.preventDefault()}"/>
+      <button class="blocker-add-btn" onclick="addBlocker()">+ הוסף</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveProject()">💾 שמור פרויקט</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-add')">ביטול</button>
+    </div>
+    <div id="edit-delete-btn" style="display:none;margin-top:8px">
+      <button class="btn btn-danger" onclick="deleteFromEdit()" style="width:100%">🗑️ מחק פרויקט</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL -->
+<div class="modal-bg" id="modal-detail">
+  <div class="modal" style="padding:0;display:flex;flex-direction:column;max-height:94vh">
+    <div class="modal-handle" style="padding-top:14px;padding-bottom:0;flex-shrink:0"><div style="width:36px;height:3px;background:var(--bg4);border-radius:2px;margin:0 auto"></div></div>
+    <!-- Sticky project name header -->
+    <div id="detail-sticky-header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 15px 8px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg2)">
+      <div id="detail-sticky-name" style="font-size:15px;font-weight:700;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+      <button onclick="closeModal('modal-detail')" style="width:30px;height:30px;border-radius:50%;background:rgba(240,82,82,0.15);border:1px solid rgba(240,82,82,0.3);color:var(--red);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:8px">✕</button>
+    </div>
+    <!-- Scrollable content -->
+    <div style="flex:1;overflow-y:auto;padding:14px 15px">
+      <div id="detail-content"></div>
+      <div class="btn-row" id="detail-btns"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EXTENSION -->
+<div class="modal-bg" id="modal-ext">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📅 בקשת הארכה</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px" id="ext-proj-lbl"></div>
+    <div class="fr"><label>תאריך יעד חדש מבוקש *</label><input id="ext-newdate" type="date"/></div>
+    <div class="fr"><label>סיבת הדחייה *</label><textarea id="ext-reason" placeholder="פרט מדוע נדרשת הארכה..."></textarea></div>
+    <div class="btn-row">
+      <button class="btn btn-amber" onclick="submitExt()">📤 שלח לאישור ראש הענף</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-ext')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- APPROVE -->
+<div class="modal-bg" id="modal-approve">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✅ אישור הארכה</div>
+    <div id="approve-content"></div>
+    <div class="fr" style="margin-top:14px"><label>שם המאשר *</label><input id="approve-signer" placeholder="שם בעל התפקיד המאשר"/></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="doApprove(true)">✅ אשר הארכה</button>
+      <button class="btn btn-danger btn-sm" onclick="doApprove(false)">❌ דחה</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-approve')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div class="modal-bg" id="modal-hist">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📋 היסטוריית דחיות</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px" id="hist-proj-lbl"></div>
+    <div id="hist-content"></div>
+    <div class="btn-row"><button class="btn btn-secondary" onclick="closeModal('modal-hist')">סגור</button></div>
+  </div>
+</div>
+
+
+<!-- REMINDERS MODAL -->
+<div class="modal-bg" id="modal-reminders">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔔 התזכורות שלי</div>
+    <div id="reminders-list" style="margin-bottom:12px"></div>
+    <div class="add-task-btn" onclick="openAddReminder()">+ הוסף תזכורת חדשה</div>
+    <div class="btn-row"><button class="btn btn-secondary btn-sm" onclick="closeModal('modal-reminders')">סגור</button></div>
+  </div>
+</div>
+
+<!-- ADD REMINDER -->
+<div class="modal-bg" id="modal-add-reminder">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">+ תזכורת חדשה</div>
+    <div class="fr"><label>טקסט התזכורת *</label><textarea id="rem-text" placeholder="מה לתזכר..."></textarea></div>
+    <div class="fg2">
+      <div class="fr"><label>תאריך *</label><input id="rem-date" type="date"/></div>
+      <div class="fr"><label>שעה</label><input id="rem-time" type="time" value="08:00"/></div>
+    </div>
+    <div class="fr">
+      <label>חזרה (לא חובה)</label>
+      <div class="repeat-chips" id="repeat-chips">
+        <button class="repeat-chip sel" onclick="setRepeat('none',this)">ללא</button>
+        <button class="repeat-chip" onclick="setRepeat('daily',this)">יומי</button>
+        <button class="repeat-chip" onclick="setRepeat('weekly',this)">שבועי</button>
+        <button class="repeat-chip" onclick="setRepeat('custom',this)">כל X ימים</button>
+      </div>
+      <input type="hidden" id="rem-repeat" value="none"/>
+      <div id="rem-custom-days" style="display:none;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px;color:var(--text2)">כל</span>
+          <input id="rem-days-num" type="number" min="1" max="365" value="7" style="width:70px;padding:8px;background:var(--bg3);border:1px solid var(--accent);border-radius:var(--radius-sm);color:var(--accent);font-size:14px;font-weight:700;text-align:center;font-family:'Heebo',sans-serif;outline:none"/>
+          <span style="font-size:13px;color:var(--text2)">ימים</span>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveReminder()">💾 שמור תזכורת</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-add-reminder')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- TASKS MODAL -->
+<div class="modal-bg" id="modal-tasks">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="tasks-modal-title">משימות</div>
+    <div id="tasks-list" style="margin-bottom:12px"></div>
+    <div class="add-task-btn" onclick="openAddTask()">+ הוסף משימה</div>
+    <div class="btn-row"><button class="btn btn-secondary btn-sm" onclick="closeModal('modal-tasks')">סגור</button></div>
+  </div>
+</div>
+
+<!-- ADD TASK -->
+<div class="modal-bg" id="modal-add-task">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">+ משימה חדשה</div>
+    <div class="fr"><label>מה המשימה *</label><textarea id="task-what" placeholder="תאר את המשימה..."></textarea></div>
+    <div class="fr">
+      <label>אחריות</label>
+      <input id="task-owner" placeholder="שם בעל תפקיד..." oninput="checkTaskOwner()"/>
+      <div id="task-owner-hint" style="font-size:11px;margin-top:4px;display:none"></div>
+    </div>
+    <div class="fr"><label>תאריך גמר ביצוע</label><input id="task-due" type="date"/></div>
+    <div id="task-notif-hint" style="display:none;background:rgba(46,204,138,0.08);border:1px solid rgba(46,204,138,0.2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--green);margin-bottom:4px"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveTask()">💾 שמור משימה</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-add-task')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- DOCS MODAL -->
+<div class="modal-bg" id="modal-docs">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="docs-modal-title">📎 מסמכים</div>
+    <div id="docs-list" style="margin-bottom:12px"></div>
+    <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+      📎 העלה מסמך מהטלפון
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">תמונות, PDF, Word ועוד</div>
+    </div>
+    <input type="file" id="file-input" style="display:none" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="uploadFiles(this)"/>
+    <div class="btn-row"><button class="btn btn-secondary btn-sm" onclick="closeModal('modal-docs')">סגור</button></div>
+  </div>
+</div>
+
+<!-- STATUTORY MODAL -->
+<div class="modal-bg" id="modal-statutory">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📋 סטטוטוריקה</div>
+    <div class="fr">
+      <label>פרטי סטטוטוריקה</label>
+      <textarea id="statutory-text" placeholder="הזן פרטי סטטוטוריקה — היתרים, אישורים, תנאים..." style="min-height:120px"></textarea>
+    </div>
+    <div id="statutory-updated" style="font-size:11px;color:var(--text3);margin-bottom:8px"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveStatutory()">💾 שמור</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-statutory')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- TRANSFER OWNERSHIP MODAL -->
+<div class="modal-bg" id="modal-transfer">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔄 העברת בעלות</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px" id="transfer-proj-name"></div>
+    <div class="fr">
+      <label>העבר אל *</label>
+      <select id="transfer-to-user">
+        <option value="">בחר משתמש...</option>
+      </select>
+    </div>
+    <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--amber);margin-bottom:10px">
+      🔔 שני הצדדים יקבלו התראה על העברת הבעלות
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="doTransfer()">🔄 העבר בעלות</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-transfer')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MANAGER PERSON MODAL -->
+<div class="modal-bg" id="modal-add-person">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="modal-title">+ הוסף בעל תפקיד</div>
+      <button onclick="closeModal('modal-add-person')" style="width:28px;height:28px;border-radius:50%;background:rgba(240,82,82,0.15);border:1px solid rgba(240,82,82,0.3);color:var(--red);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <div class="fr">
+      <label>שלב 1 — ענף</label>
+      <div class="step-opts">
+        <button class="step-opt sel" id="branch-binui" onclick="selectBranch('binui')">🏗️ בינוי</button>
+        <button class="step-opt" id="branch-tashtiot" onclick="selectBranch('tashtiot')">⚡ תשתיות</button>
+      </div>
+      <input type="hidden" id="person-branch" value="binui"/>
+    </div>
+    <div class="fr">
+      <label>שלב 2 — תפקיד</label>
+      <div class="step-opts">
+        <button class="step-opt sel" id="rank-raen" onclick="selectRank('raen')">רע"ן</button>
+        <button class="step-opt" id="rank-ramd" onclick="selectRank('ramd')">רמ"ד</button>
+      </div>
+      <input type="hidden" id="person-rank" value="raen"/>
+    </div>
+    <div class="fr">
+      <label>שלב 3 — שם</label>
+      <input id="person-name" placeholder="שם בעל התפקיד..." oninput="updatePersonPreview()"/>
+    </div>
+    <div class="result-preview-box" id="person-preview">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:3px">כך יראה ברשימה:</div>
+      <div style="font-size:14px;font-weight:700;color:var(--green)" id="person-preview-text">רע"ן בינוי — </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="savePersonRole()">💾 שמור בעל תפקיד</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-add-person')">ביטול</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, enableIndexedDbPersistence, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+
+const FB={apiKey:"AIzaSyAUBM7TGXDxti-ve9RCD4u40G44qaSnmQA",authDomain:"project-management-il.firebaseapp.com",projectId:"project-management-il",storageBucket:"project-management-il.firebasestorage.app",messagingSenderId:"1080251277636",appId:"1:1080251277636:web:e7f6b1cf83daf144daf711"};
+const fbApp=initializeApp(FB);
+const db=getFirestore(fbApp);
+const auth=getAuth(fbApp);
+const storage=getStorage(fbApp);
+enableIndexedDbPersistence(db).catch(()=>{});
+
+const VAPID_KEY='BI4aOlRI5ERgBDPrb41YFCGollB3nu9bqVD0ZnreYFQGWgMh30iOXvv9ODfJOXKI2OueZUshVG-NmGqHJBskI48';
+const ADMIN_EMAILS=['gabyop2014@gmail.com','barilyin18@gmail.com'];
+const colProjects=collection(db,'projects');
+const colUsers=collection(db,'users');
+const colExt=collection(db,'extensions');
+const PIE=['#4f8ef7','#2ecc8a','#f5a623','#f05252','#a78bfa','#e879f9','#34d399','#fb923c'];
+
+let projects=[],users=[],extensions=[];
+let me=null,editId=null,detailId=null,extProjId=null,approvingExtId=null;
+let activeFilter='הכל',charts={},regRole='ramd',formBlockers=[];
+
+// ── AUTH ──
+// selectRegRole removed - using person-based registration
+
+// Reg state
+let regBranch='binui', regRank='raen', regPersonId=null;
+
+window.selectRegBranch=b=>{
+  regBranch=b;
+  document.getElementById('reg-branch-binui')?.classList.toggle('sel',b==='binui');
+  document.getElementById('reg-branch-tashtiot')?.classList.toggle('sel',b==='tashtiot');
+  regPersonId=null;
+  renderRegRoleList();
+  updateRegPreview();
+};
+
+window.selectRegRank=r=>{
+  regRank=r;
+  ['raen','ramd','ramah'].forEach(x=>document.getElementById('reg-rank-'+x)?.classList.toggle('sel',x===r));
+};
+
+function renderRegRoleList(){
+  const list=document.getElementById('reg-role-list');
+  if(!list) return;
+  const branchFilter=regBranch==='binui'?'בינוי':'תשתיות';
+  const filtered=persons.filter(p=>p.branch===branchFilter||p.branch===regBranch);
+  if(!filtered.length){
+    list.innerHTML='<div style="padding:10px;font-size:12px;color:var(--text3);text-align:center">אין תפקידים עדיין — הוסף חדש למטה</div>';
+    return;
+  }
+  list.innerHTML=filtered.map(p=>{
+    const isReg=users.some(u=>u.personId===p.id);
+    const isSel=regPersonId===p.id;
+    return`<div onclick="selectRegPerson('${p.id}')" style="padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);background:${isSel?'rgba(79,142,247,0.12)':'transparent'}">
+      <span style="font-size:13px;color:${isSel?'var(--accent)':'var(--text)'};font-weight:${isSel?700:400}">${p.fullTitle}${isSel?' ✓':''}</span>
+      <span style="font-size:10px;color:${isReg?'var(--text3)':'var(--green)'}">${isReg?'תפוס':'פנוי'}</span>
+    </div>`;
+  }).join('');
+}
+
+window.selectRegPerson=id=>{
+  regPersonId=id;
+  renderRegRoleList();
+  updateRegPreview();
+};
+
+function updateRegPreview(){
+  const preview=document.getElementById('reg-preview');
+  const text=document.getElementById('reg-preview-text');
+  if(!preview||!text) return;
+  if(regPersonId){
+    const p=persons.find(x=>x.id===regPersonId);
+    if(p){preview.style.display='block';text.textContent=p.fullTitle;}
+  } else {
+    preview.style.display='none';
+  }
+}
+
+window.addNewRoleFromReg=async()=>{
+  const name=document.getElementById('reg-new-role-name').value.trim();
+  if(!name){showToast('⚠️ נא להזין שם');return;}
+  const branch=regBranch==='binui'?'בינוי':'תשתיות';
+  const rankMap={'raen':'רע"ן','ramd':'רמ"ד','ramah':'רמ"ח'};
+  const rank=rankMap[regRank]||'רמ"ד';
+  const fullTitle=`${rank} — ${name}`;
+  const ref=await addDoc(colPersons,{name,branch,rank,fullTitle,createdAt:new Date().toISOString()});
+  document.getElementById('reg-new-role-name').value='';
+  regPersonId=ref.id;
+  showToast('✅ תפקיד נוסף');
+  setTimeout(()=>{renderRegRoleList();updateRegPreview();},500);
+};
+
+window.doRegister=async()=>{
+  clearAuthError('reg-error');
+  const email=document.getElementById('reg-email').value.trim();
+  const pass=document.getElementById('reg-pass').value;
+  const pass2=document.getElementById('reg-pass2').value;
+  if(!regPersonId){showAuthError('reg-error','נא לבחור תפקיד מהרשימה');return;}
+  if(!email){showAuthError('reg-error','נא להזין אימייל');return;}
+  if(pass.length<6){showAuthError('reg-error','הסיסמא חייבת לפחות 6 תווים');return;}
+  if(pass!==pass2){showAuthError('reg-error','הסיסמאות אינן תואמות');return;}
+  const person=persons.find(x=>x.id===regPersonId);
+  if(!person){showAuthError('reg-error','תפקיד לא נמצא');return;}
+  try{
+    const cred=await createUserWithEmailAndPassword(auth,email,pass);
+    // Map rank to system role
+    const roleMap={'רע"ן':'raen','רמ"ד':'ramd','רמ"ח':'ramah','קמ"ד':'kamd'};
+    const sysRole=roleMap[person.rank]||'ramd';
+    await addDoc(colUsers,{uid:cred.user.uid,name:person.fullTitle,role:sysRole,email,personId:regPersonId,branch:regBranch,createdAt:new Date().toISOString()});
+    showToast('✅ החשבון נוצר בהצלחה');
+  }catch(e){
+    const msgs={'auth/email-already-in-use':'האימייל הזה כבר רשום במערכת','auth/invalid-email':'כתובת אימייל לא תקינה','auth/weak-password':'הסיסמא חלשה מדי'};
+    showAuthError('reg-error',msgs[e.code]||'שגיאה ביצירת החשבון');
+  }
+};
+
+window.doLogin=async()=>{
+  clearAuthError('login-error');
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  if(!email||!pass){showAuthError('login-error','נא למלא אימייל וסיסמא');return;}
+  try{
+    await signInWithEmailAndPassword(auth,email,pass);
+  }catch(e){
+    const msgs={'auth/user-not-found':'משתמש לא נמצא','auth/wrong-password':'סיסמא שגויה','auth/invalid-credential':'אימייל או סיסמא שגויים','auth/too-many-requests':'יותר מדי ניסיונות'};
+    showAuthError('login-error',msgs[e.code]||'שגיאה בכניסה');
+  }
+};
+
+window.gotoLogin=()=>{document.getElementById('screen-register').classList.add('hidden');document.getElementById('screen-login').classList.remove('hidden');};
+window.gotoRegister=()=>{document.getElementById('screen-login').classList.add('hidden');document.getElementById('screen-register').classList.remove('hidden');renderRegRoleList();};
+function showAuthError(id,msg){
+  const el=document.getElementById(id);
+  el.textContent=msg;el.classList.add('show');
+}
+function clearAuthError(id){document.getElementById(id).classList.remove('show');}
+
+
+// ── AUTH STATE ──
+onAuthStateChanged(auth,async user=>{
+  if(user){
+    const q=query(colUsers,where('uid','==',user.uid));
+    const snap=await getDocs(q);
+    if(!snap.empty){
+      // existing user
+      me={id:snap.docs[0].id,...snap.docs[0].data()};
+      enterApp();
+    } else {
+      // new user - show role setup
+      document.getElementById('screen-login').classList.add('hidden');
+      document.getElementById('screen-setup-role').classList.remove('hidden');
+      // watch for user doc creation
+      const unsub = onSnapshot(query(colUsers,where('uid','==',user.uid)), snap=>{
+        if(!snap.empty){
+          me={id:snap.docs[0].id,...snap.docs[0].data()};
+          document.getElementById('screen-setup-role').classList.add('hidden');
+          unsub();
+          enterApp();
+        }
+      });
+    }
+  }else{
+    exitApp();
+  }
+});
+
+function enterApp(){
+  document.getElementById('screen-register').classList.add('hidden');
+  document.getElementById('screen-login').classList.add('hidden');
+  document.getElementById('app').style.display='flex';
+  document.getElementById('fab').style.display='flex';
+  document.getElementById('user-chip').textContent=me.name;
+  if(isAdmin()) document.getElementById('admin-badge').style.display='flex';
+  else document.getElementById('admin-badge').style.display='none';
+  if(me.role==='ramah') document.getElementById('nav-pending').style.display='flex';
+  render();
+  // Request notifications after short delay so UI is ready
+  setTimeout(requestAndRegisterNotif, 1500);
+  startNotifsListener();
+  setTimeout(migrateOldExtensions, 2000);
+}
+
+async function requestAndRegisterNotif(){
+  if(!('Notification' in window)) return;
+  try {
+    // Always request - even if previously denied, show our modal
+    if(Notification.permission === 'default'){
+      // Show our own prompt first
+      showNotifPrompt();
+    } else if(Notification.permission === 'granted'){
+      await registerFCMToken();
+      // Update settings toggle
+      const toggle = document.getElementById('notif-toggle');
+      if(toggle) toggle.checked = true;
+    } else {
+      // Denied - show message in settings
+      const toggle = document.getElementById('notif-toggle');
+      if(toggle) toggle.checked = false;
+    }
+  } catch(e){ console.log('Notif request error:', e); }
+}
+
+
+function showInAppNotif(title, body){
+  // Remove existing if any
+  document.getElementById('in-app-notif')?.remove();
+  const div=document.createElement('div');
+  div.id='in-app-notif';
+  div.style.cssText='position:fixed;top:70px;right:12px;left:12px;background:#1a1f2e;border:1px solid rgba(79,142,247,0.4);border-radius:10px;padding:12px 14px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.5);animation:slideDown 0.3s ease';
+  div.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+    <div>
+      <div style="font-size:13px;font-weight:700;color:#f0f2f7;margin-bottom:2px">🔔 ${title}</div>
+      <div style="font-size:12px;color:#8892a8">${body}</div>
+    </div>
+    <div onclick="document.getElementById('in-app-notif').remove()" style="color:#5a6278;cursor:pointer;font-size:18px;line-height:1">×</div>
+  </div>`;
+  document.body.appendChild(div);
+  setTimeout(()=>document.getElementById('in-app-notif')?.remove(), 6000);
+}
+
+function showNotifPrompt(){
+  // Show a nice in-app prompt before triggering browser dialog
+  const div = document.createElement('div');
+  div.id = 'notif-prompt';
+  div.style.cssText = 'position:fixed;bottom:80px;right:16px;left:16px;background:#1a1f2e;border:1px solid rgba(79,142,247,0.4);border-radius:12px;padding:16px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.5)';
+  div.innerHTML = `
+    <div style="font-size:20px;margin-bottom:6px">🔔</div>
+    <div style="font-size:14px;font-weight:700;color:#f0f2f7;margin-bottom:4px">אפשר התראות</div>
+    <div style="font-size:12px;color:#8892a8;margin-bottom:12px">קבל התראות על פרויקטים, חריגות והעברות בעלות גם כשהאפליקציה סגורה</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="doEnableNotif()" style="flex:1;padding:9px;background:#4f8ef7;border:none;border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;cursor:pointer">אפשר התראות</button>
+      <button onclick="document.getElementById('notif-prompt').remove()" style="padding:9px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer">אחר כך</button>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+window.doEnableNotif = async () => {
+  const prompt = document.getElementById('notif-prompt');
+  if(prompt) prompt.remove();
+  const perm = await Notification.requestPermission();
+  if(perm === 'granted'){
+    await registerFCMToken();
+    const toggle = document.getElementById('notif-toggle');
+    if(toggle) toggle.checked = true;
+    localStorage.setItem('notif_enabled', 'true');
+    showToast('✅ התראות הופעלו!');
+  } else {
+    showToast('⚠️ לא אושרו התראות — ניתן לאפשר בהגדרות הדפדפן');
+  }
+};
+
+function exitApp(){
+  me=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('fab').style.display='none';
+  document.getElementById('nav-pending').style.display='none';
+  document.getElementById('screen-setup-role').classList.add('hidden');
+  document.getElementById('screen-login').classList.remove('hidden');
+}
+
+// ── NOTIFICATIONS ──
+async function requestNotifPermission(){
+  if(!('Notification'in window)) return;
+  if(Notification.permission==='granted') await registerFCMToken();
+}
+
+async function registerFCMToken(){
+  try{
+    const messaging=getMessaging(fbApp);
+    const swReg=await navigator.serviceWorker.ready;
+    const token=await getToken(messaging,{vapidKey:VAPID_KEY,serviceWorkerRegistration:swReg});
+    if(!token||!me) return;
+    const q=query(collection(db,'fcmTokens'),where('userId','==',me.id),where('token','==',token));
+    const snap=await getDocs(q);
+    if(snap.empty) await addDoc(collection(db,'fcmTokens'),{userId:me.id,userName:me.name,token,createdAt:new Date().toISOString()});
+    onMessage(messaging,payload=>{
+      const{title,body}=payload.notification||{};
+      if(title){
+        // Show in-app notification banner
+        showInAppNotif(title, body||'');
+      }
+    });
+  }catch(e){console.log('FCM:',e.message);}
+}
+
+
+// ── NOTIFICATIONS SYSTEM ──
+const colNotifs = collection(db,'notifications');
+let myNotifs = [], unreadCount = 0;
+
+function startNotifsListener(){
+  if(!me) return;
+  onSnapshot(query(colNotifs, where('toUserId','==',me.id)), snap=>{
+    myNotifs=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    unreadCount=myNotifs.filter(n=>!n.read).length;
+    updateNotifBadge();
+    if(document.getElementById('page-notifs')?.classList.contains('active')) renderNotifsList();
+  });
+}
+
+function updateNotifBadge(){
+  const nb=document.getElementById('nav-notifs'); if(!nb) return;
+  nb.querySelector('.nav-bdg')?.remove();
+  const lbl=document.getElementById('notif-nav-lbl');
+  if(unreadCount>0){
+    const dot=document.createElement('div');dot.className='nav-bdg';
+    dot.style.cssText='position:absolute;top:2px;left:6px;width:8px;height:8px;border-radius:50%;background:#f05252;border:2px solid var(--bg)';
+    nb.style.position='relative';nb.appendChild(dot);
+    if(lbl) lbl.textContent=`התראות (${unreadCount})`;
+  } else { if(lbl) lbl.textContent='התראות'; }
+}
+
+function renderNotifsList(){
+  const el=document.getElementById('notifs-list'); if(!el) return;
+  if(!myNotifs.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🔔</div><div>אין התראות</div></div>';return;}
+  el.innerHTML=myNotifs.map(n=>{
+    const canApprove=isAdmin()||me?.role==='ramah'||me?.role==='raen';
+    const isExt=canApprove&&n.title&&(n.title.includes('דחיית')||n.title.includes('דחייה'));
+    const ext=isExt&&n.projectId?(extensions||[]).find(e=>e.projectId===n.projectId&&e.status==='pending'):null;
+    const btns=ext?`<div style="display:flex;gap:6px;margin-top:8px">
+      <button onclick="event.stopPropagation();quickApprove('${ext.id}')" style="flex:1;padding:7px;background:rgba(46,204,138,0.15);border:1px solid rgba(46,204,138,0.3);border-radius:6px;color:var(--green);font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;cursor:pointer">✅ אשר</button>
+      <button onclick="event.stopPropagation();quickReject('${ext.id}')" style="flex:1;padding:7px;background:rgba(240,82,82,0.12);border:1px solid rgba(240,82,82,0.25);border-radius:6px;color:var(--red);font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;cursor:pointer">❌ דחה</button>
+    </div>`:'';
+    return `<div class="notif-item ${n.read&&!btns?'':'unread'}" onclick="handleNotifClick('${n.id}','${n.projectId||''}')">
+      <div class="notif-icon">${n.icon||'🔔'}</div>
+      <div class="notif-content">
+        <div class="notif-title">${n.title||''}</div>
+        <div class="notif-body">${n.body||''}</div>
+        <div class="notif-time">${timeSince(n.createdAt)}</div>
+        ${btns}
+      </div>
+      ${!n.read?'<div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px"></div>':''}
+    </div>`;
+  }).join('');
+}
+
+window.handleNotifClick=async(nid,pid)=>{
+  await updateDoc(doc(db,'notifications',nid),{read:true});
+  if(pid){switchPage('projects');setTimeout(()=>{if(projects.find(x=>x.id===pid))openDetail(pid);},300);}
+};
+window.markAllRead=async()=>{await Promise.all(myNotifs.filter(n=>!n.read).map(n=>updateDoc(doc(db,'notifications',n.id),{read:true})));};
+function markNotifsRead(){myNotifs.filter(n=>!n.read).forEach(n=>updateDoc(doc(db,'notifications',n.id),{read:true}));}
+function timeSince(ds){if(!ds)return '';const d=Math.floor((Date.now()-new Date(ds))/1000);if(d<60)return 'עכשיו';if(d<3600)return `לפני ${Math.floor(d/60)} דקות`;if(d<86400)return `לפני ${Math.floor(d/3600)} שעות`;return `לפני ${Math.floor(d/86400)} ימים`;}
+async function sendNotif(uid,{icon,title,body,projectId}){if(!uid||uid===me?.id)return;await addDoc(colNotifs,{toUserId:uid,icon:icon||'🔔',title,body:body||'',projectId:projectId||'',read:false,createdAt:new Date().toISOString()});}
+async function sendNotifToMany(ids,n){await Promise.all([...new Set(ids.filter(id=>id&&id!==me?.id))].map(id=>sendNotif(id,n)));}
+function getAdminUserIds(){return users.filter(u=>ADMIN_EMAILS.includes(u.email)).map(u=>u.id);}
+function getRaenUserIds(){return users.filter(u=>u.role==='raen'||u.role==='ramah').map(u=>u.id);}
+function getUserIdByPersonTitle(t){if(!t)return null;const u=users.find(u=>{const p=persons.find(px=>px.id===u.personId);return p?.fullTitle===t||u.name===t;});return u?.id||null;}
+window.quickApprove=async(eid)=>{
+  const e=extensions.find(x=>x.id===eid);if(!e)return;
+  const fmap={'tikhnun':'msTikhnunEnd','bitsuStart':'msBitsuStart','bitsuEnd':'msBitsuEnd','stageDue':'stageDue'};
+  await updateDoc(doc(db,'extensions',eid),{status:'approved',approvedBy:me.name,approvedAt:new Date().toISOString()});
+  await updateDoc(doc(db,'projects',e.projectId),{[fmap[e.milestone||'stageDue']||'stageDue']:e.newDate,updatedAt:new Date().toISOString()});
+  const proj=projects.find(x=>x.id===e.projectId);
+  await sendNotif(e.requesterId,{icon:'✅',title:'בקשת הדחייה אושרה',body:`אושר ע"י ${me.name} — "${proj?.name||''}"`,projectId:e.projectId});
+  showToast('✅ אושר');renderNotifsList();
+};
+window.quickReject=async(eid)=>{
+  const e=extensions.find(x=>x.id===eid);if(!e)return;
+  await updateDoc(doc(db,'extensions',eid),{status:'rejected',approvedBy:me.name,approvedAt:new Date().toISOString()});
+  const proj=projects.find(x=>x.id===e.projectId);
+  await sendNotif(e.requesterId,{icon:'❌',title:'בקשת הדחייה נדחתה',body:`נדחה ע"י ${me.name} — "${proj?.name||''}"`,projectId:e.projectId});
+  showToast('❌ נדחה');renderNotifsList();
+};
+async function migrateOldExtensions(){
+  try{
+    const admin=users.find(u=>u.email==='gabyop2014@gmail.com');if(!admin)return;
+    if(localStorage.getItem('ext_mgr_v3'))return;
+    const snap=await getDocs(query(colExt));let cnt=0;
+    for(const d of snap.docs){
+      const e=d.data();const proj=projects.find(x=>x.id===e.projectId);
+      const ex=await getDocs(query(colNotifs,where('toUserId','==',admin.id),where('projectId','==',e.projectId)));
+      if(ex.empty){
+        await addDoc(colNotifs,{toUserId:admin.id,icon:'📋',title:'בקשת דחיית תאריך',
+          body:`${e.requesterName||'משתמש'} ביקש לדחות תאריך של "${proj?.name||e.projectId}" ל-${fmtD(e.newDate)}${e.reason?' — '+e.reason:''}`,
+          projectId:e.projectId||'',read:false,createdAt:e.requestedAt||new Date().toISOString()});cnt++;
+      }
+    }
+    localStorage.setItem('ext_mgr_v3','true');
+    if(cnt>0)showToast(`🔔 ${cnt} בקשות ישנות נוספו`);
+  }catch(e){console.log(e);}
+}
+
+// ── FIRESTORE ──
+onSnapshot(colUsers,snap=>{users=snap.docs.map(d=>({id:d.id,...d.data()}));if(me) render();});
+onSnapshot(colProjects,snap=>{projects=snap.docs.map(d=>({id:d.id,...d.data()}));if(me){render();}});
+onSnapshot(colExt,snap=>{extensions=snap.docs.map(d=>({id:d.id,...d.data()}));updatePendingBadge();if(me) renderPending();});
+
+function updatePendingBadge(){
+  const n=extensions.filter(e=>e.status==='pending').length;
+  const btn=document.getElementById('nav-pending');
+  btn.querySelector('.nb-badge')?.remove();
+  if(n>0&&me?.role==='ramah'){const b=document.createElement('div');b.className='nb-badge';b.textContent=n;btn.appendChild(b);}
+}
+
+// ── HELPERS ──
+window.setToggle=(gid,val,btn)=>{document.querySelectorAll(`#${gid} .toggle-btn`).forEach(b=>b.className='toggle-btn');btn.classList.add('sel-gray');const el=document.getElementById(gid.replace('tg-','f-'));if(el)el.value=val;};
+window.setToggle3=(gid,val,color,btn)=>{document.querySelectorAll(`#${gid} .toggle-btn`).forEach(b=>b.className='toggle-btn');btn.classList.add(`sel-${color}`);const el=document.getElementById(gid.replace('tg-','f-'));if(el)el.value=val;};
+window.addBlocker=()=>{const inp=document.getElementById('blocker-input');const txt=inp.value.trim();if(!txt)return;formBlockers.push(txt);inp.value='';renderFormBlockers();};
+window.removeBlocker=i=>{formBlockers.splice(i,1);renderFormBlockers();};
+function renderFormBlockers(){document.getElementById('blockers-list').innerHTML=formBlockers.map((b,i)=>`<div class="blocker-item"><span class="blocker-text">${b}</span><button class="blocker-del" onclick="removeBlocker(${i})">×</button></div>`).join('');}
+function myProjects(){
+  if(isAdmin()||me?.role==='ramah') return projects;
+  // Find this user's person record to get their fullTitle
+  const myPerson = persons.find(p=>p.id===me?.personId);
+  const myTitle = myPerson?.fullTitle || me?.name || '';
+  return projects.filter(p=>
+    p.ownerId===me?.id ||
+    (myTitle && p.kapt===myTitle) ||
+    (myTitle && p.integrator===myTitle)
+  );
+}
+function daysDiff(ds){if(!ds)return null;const t=new Date();t.setHours(0,0,0,0);return Math.round((t-new Date(ds))/86400000);}
+function daysLabel(ds){const d=daysDiff(ds);if(d===null)return{text:'—',cls:'bg-gray'};if(d>0)return{text:`חריגה ${d} ימים`,cls:'bg-red'};if(d===0)return{text:'היום!',cls:'bg-amber'};return{text:`נותרו ${Math.abs(d)} ימים`,cls:'bg-green'};}
+function sBadge(s){const m={'בביצוע':'bg-blue','מוקפא':'bg-purple','חריג':'bg-red','נמסר':'bg-green'};return`<span class="badge ${m[s]||'bg-gray'}">${s}</span>`;}
+
+function fmtNum(n){if(!n||n==0)return'—';return Number(n).toLocaleString('he-IL');}
+function fmtM(n){return(!n||n==0)?'—':'₪'+Number(n).toLocaleString('he-IL');}
+function fmtD(ds){if(!ds)return'—';const d=new Date(ds);return`${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;}
+function uName(id){return users.find(x=>x.id===id)?.name||'—';}
+function maurBadge(v){if(v==='הסתיים')return`<span class="badge bg-green">${v}</span>`;if(v==='בתהליך')return`<span class="badge bg-amber">${v}</span>`;return`<span class="badge bg-gray">${v||'—'}</span>`;}
+function statBadge(v){
+  if(v==='לא נדרש') return`<span class="badge bg-green">לא נדרש</span>`;
+  if(v==='פטור רמ"ח תו"פ') return`<span class="badge bg-gray">פטור רמ"ח תו"פ</span>`;
+  return`<span class="badge bg-amber">נדרש</span>`;
+}
+function existBadge(v){return v==='קיים'?`<span class="badge bg-green">✓ קיים</span>`:`<span class="badge bg-gray">✗ לא קיים</span>`;}
+function mkPie(id,labels,data,colors){
+  charts[id]?.destroy();delete charts[id];
+  const ctx=document.getElementById(id);if(!ctx||!data.length)return;
+  const clrs=(colors||PIE).slice(0,data.length);
+  charts[id]=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:clrs,borderWidth:2,borderColor:'#232a3b',hoverOffset:5}]},options:{responsive:true,cutout:'58%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw}`}}},animation:{duration:400}}});
+  // Add legend below chart
+  const legendEl=document.getElementById(id+'-legend');
+  if(legendEl){
+    legendEl.innerHTML=labels.map((l,i)=>`
+      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--text2)">
+        <div style="width:8px;height:8px;border-radius:2px;background:${clrs[i]};flex-shrink:0"></div>
+        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px" title="${l}">${l}: ${data[i]}</span>
+      </div>`).join('');
+  }
+}
+
+// ── RENDER ──
+function render(){if(!me)return;renderDash();renderProjects();renderManagers();renderDelivered();}
+
+function projRow(p){
+  const dl=daysLabel(p.stageDue);
+  const hasPend=extensions.some(e=>e.projectId===p.id&&e.status==='pending');
+  const cls=(p.status==='חריג'||(daysDiff(p.stageDue)||0)>0)?'exc':p.status==='מוקפא'?'frz':hasPend?'pend':'';
+  const isFav=(JSON.parse(localStorage.getItem('favs')||'[]')).includes(p.id);
+  return`<div class="proj-row ${cls}" style="position:relative" onclick="openDetail('${p.id}')">
+    <button class="fav-btn" style="position:absolute;left:8px;top:50%;transform:translateY(-50%)" onclick="event.stopPropagation();toggleFav('${p.id}')" title="מועדף">${isFav?'❤️':'🤍'}</button>
+    <div class="proj-name" style="padding-left:30px">${p.name}</div>
+    <div class="proj-meta">${p.stage||'—'}${p.kapt?' · קפ"ט: '+p.kapt:''}${hasPend?' · <span style="color:var(--amber)">⏳ ממתין לאישור</span>':''}</div>
+    <div class="proj-tags">${sBadge(p.status)}<span class="badge ${dl.cls}">${dl.text}</span>${p.wbs==='קיים'?'<span class="badge bg-green">WBS</span>':''}${p.emf==='קיים'?'<span class="badge bg-blue">EMF</span>':''}</div>
+    <div class="proj-owner">אחראי: ${uName(p.ownerId)}</div>
+  </div>`;
+}
+
+function renderDash(){
+  const vp=myProjects().filter(p=>!p.delivered);
+  const frozen=vp.filter(p=>p.status==='מוקפא');
+  const exc=vp.filter(p=>p.status==='חריג'||(daysDiff(p.stageDue)||0)>0);
+  const del=myProjects().filter(p=>p.delivered);
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat"><div class="stat-val sv-blue">${vp.length}</div><div class="stat-lbl">פרויקטים פעילים</div></div>
+    <div class="stat"><div class="stat-val sv-green">${del.length}</div><div class="stat-lbl">נמסרו</div></div>
+    <div class="stat"><div class="stat-val sv-amber">${frozen.length}</div><div class="stat-lbl">מוקפאים</div></div>
+    <div class="stat"><div class="stat-val sv-red">${exc.length}</div><div class="stat-lbl">חריגים</div></div>`;
+  const notifs=vp.filter(p=>{const d=daysDiff(p.stageDue);return d!==null&&((d>=0&&d<=5)||d>0);}).slice(0,3);
+  document.getElementById('notif-area').innerHTML=notifs.map(p=>{
+    const d=daysDiff(p.stageDue);
+    const msg=d>0?`חרג ב-<strong>${d} ימים</strong>`:d===0?`<strong>תג"ב היום!</strong>`:`נותרו <strong>${Math.abs(d)} ימים</strong>`;
+    return`<div class="notif-row"><div style="font-size:16px;flex-shrink:0">🔔</div><div class="notif-txt"><strong>${p.name}</strong> — ${msg}</div></div>`;
+  }).join('');
+  setTimeout(()=>{
+    const stg={},sts={},owners={};
+    vp.forEach(p=>{stg[p.stage||'—']=(stg[p.stage||'—']||0)+1;sts[p.status]=(sts[p.status]||0)+1;const n=uName(p.ownerId);owners[n]=(owners[n]||0)+1;});
+    mkPie('chart-stage',Object.keys(stg),Object.values(stg));
+    mkPie('chart-status',Object.keys(sts),Object.values(sts),['#4f8ef7','#a78bfa','#f05252','#2ecc8a']);
+    mkPie('chart-loc',Object.keys(owners),Object.values(owners));
+    const tB=vp.reduce((s,p)=>s+(+p.budgeted||0),0),tR=vp.reduce((s,p)=>s+(+p.realized||0),0);
+    if(tB>0)mkPie('chart-budget',['מומש','נותר'],[tR,Math.max(0,tB-tR)],['#2ecc8a','#2d3550']);
+  },150);
+  document.getElementById('frz-hdr').textContent=`מוקפאים ❄️ (${frozen.length})`;
+  document.getElementById('frz-list').innerHTML=frozen.length?frozen.map(projRow).join(''):'<div style="color:var(--text3);font-size:12px;padding:6px">אין מוקפאים</div>';
+}
+
+function renderProjects(){
+  const allActive=projects.filter(p=>!p.delivered);
+  let vp = currentScope==='mine' ? myProjects().filter(p=>!p.delivered) : allActive;
+  let data=vp;
+  // Apply text search
+  const searchEl=document.getElementById('proj-search');
+  const q=(searchEl?.value||'').trim().toLowerCase();
+  if(q){
+    data=data.filter(p=>
+      (p.name||'').toLowerCase().includes(q)||
+      (p.base||'').toLowerCase().includes(q)||
+      (p.stage||'').toLowerCase().includes(q)||
+      (p.kapt||'').toLowerCase().includes(q)||
+      (p.integrator||'').toLowerCase().includes(q)
+    );
+    const clr=document.getElementById('search-clear');
+    if(clr) clr.style.display='block';
+  } else {
+    const clr=document.getElementById('search-clear');
+    if(clr) clr.style.display='none';
+  }
+  if(selectedFilters.stage?.length) data=data.filter(p=>selectedFilters.stage.includes(p.stage));
+  if(selectedFilters.kapt?.length) data=data.filter(p=>selectedFilters.kapt.includes(p.kapt));
+  if(selectedFilters.integ?.length) data=data.filter(p=>selectedFilters.integ.includes(p.integrator));
+  if(selectedFilters.status?.length) data=data.filter(p=>selectedFilters.status.includes(p.status));
+  if(selectedFilters.base?.length) data=data.filter(p=>selectedFilters.base.includes(p.base));
+  if(selectedFilters.fav?.length) {const favs=getFavs();data=data.filter(p=>favs.includes(p.id));}
+  document.getElementById('proj-list').innerHTML=data.length?data.map(projRow).join(''):'<div class="empty-state"><div class="empty-icon">📋</div><div>אין פרויקטים תואמים</div></div>';
+}
+
+function renderPending(){
+  if(me?.role!=='boss')return;
+  const pending=extensions.filter(e=>e.status==='pending');
+  document.getElementById('pending-list').innerHTML=pending.length?pending.map(e=>{
+    const p=projects.find(x=>x.id===e.projectId);
+    return`<div class="pending-card">
+      <div style="font-weight:700;font-size:14px;margin-bottom:3px">${p?p.name:'—'}</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px">בקשה מ: <strong>${e.requesterName}</strong> · ${fmtD(e.requestedAt)}</div>
+      <div class="pending-reason">${e.reason}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">מקורי: <strong>${fmtD(e.originalDate)}</strong> → חדש: <strong style="color:var(--amber)">${fmtD(e.newDate)}</strong></div>
+      <div style="display:flex;gap:7px">
+        ${(me?.role==='ramah'||isAdmin())?`<button class="btn btn-primary btn-sm" onclick="openApprove('${e.id}')">✅ בחן ואשר</button>`:''}
+        <button class="btn btn-danger btn-sm" onclick="quickReject('${e.id}')">❌ דחה</button>
+      </div>
+    </div>`;
+  }).join(''):'<div class="empty-state"><div class="empty-icon">✅</div><div>אין בקשות ממתינות</div></div>';
+}
+
+function renderManagers(){
+  // mgr-persons-list is handled by renderManagersPage() via Firestore listener
+  // Just update the stats section
+  const vp=myProjects().filter(p=>!p.delivered);
+  const statsEl=document.getElementById('mgr-stats-section');
+  if(statsEl && vp.length>0){
+    const active=vp.length;
+    const frozen=vp.filter(p=>p.status==='מוקפא').length;
+    const exc=vp.filter(p=>p.status==='חריג'||(daysDiff(p.stageDue)||0)>0).length;
+    statsEl.innerHTML=`<div class="cubes2" style="margin-bottom:8px">
+      <div class="cube-card" style="text-align:center"><div style="font-size:22px;font-weight:700;color:var(--accent)">${active}</div><div style="font-size:11px;color:var(--text2)">פרויקטים פעילים</div></div>
+      <div class="cube-card" style="text-align:center"><div style="font-size:22px;font-weight:700;color:var(--red)">${exc}</div><div style="font-size:11px;color:var(--text2)">חריגים</div></div>
+    </div>`;
+  } else if(statsEl){
+    statsEl.innerHTML='';
+  }
+}
+
+// renderManagersOld removed
+
+function renderDelivered(){
+  const del=myProjects().filter(p=>p.delivered);
+  document.getElementById('delivered-list').innerHTML=del.length?del.map(p=>`
+    <div class="proj-row" onclick="openDetail('${p.id}')">
+      <div class="proj-name" style="padding-left:30px">${p.name}</div>
+      <div class="proj-meta">${p.stage||'—'}</div>
+      <div class="proj-tags"><span class="badge bg-green">✅ נמסר</span>${p.budgeted?`<span class="badge bg-gray">${fmtNum(p.budgeted)}</span>`:''}</div>
+      <div class="proj-owner">אחראי: ${uName(p.ownerId)}</div>
+    </div>`).join(''):'<div class="empty-state"><div class="empty-icon">📦</div><div>אין פרויקטים שנמסרו</div></div>';
+}
+
+// ── PROJECT CRUD ──
+window.openAddModal=()=>{
+  editId=null;formBlockers=[];
+  document.getElementById('modal-add-title').textContent='פרויקט חדש';
+  document.getElementById('edit-delete-btn').style.display='none';
+  ['f-name','f-kapt','f-integrator','f-stage-due','f-start','f-end','f-est-nis','f-est-ds'].forEach(id=>document.getElementById(id).value='');
+  const fb=document.getElementById('f-base');if(fb)fb.value='';
+  document.getElementById('f-stage').value='';document.getElementById('f-status').value='בביצוע';
+  ['f-ms-yizum-start','f-ms-yizum-end','f-ms-tikhnun-start','f-ms-tikhnun-end','f-ms-hitkashrut-start','f-ms-hitkashrut-end','f-ms-bitsu-start','f-ms-bitsu-end'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['tg-plan1','tg-plan2'].forEach(id=>{const btns=document.querySelectorAll(`#${id} .toggle-btn`);btns.forEach((b,i)=>{b.className='toggle-btn';if(i===0)b.classList.add('sel-gray');});});
+  document.getElementById('f-plan1').value='פנימי';document.getElementById('f-plan2').value='פנימי';
+  restoreToggle2yesno('tg-maur','לא קיים');restoreToggle2yesno('tg-wbs','לא קיים');restoreToggle2yesno('tg-emf','לא קיים');restoreStatutory('נדרש','נדרש');
+  renderFormBlockers();
+  document.getElementById('modal-add').classList.add('open');
+  setTimeout(setupNumInputs,50);
+};
+
+window.saveProject=async()=>{
+  const name=document.getElementById('f-name').value.trim();
+  const stage=document.getElementById('f-stage').value;
+  if(!name||!stage){showToast('⚠️ נא למלא שם פרויקט ושלב נוכחי');return;}
+  const status=document.getElementById('f-status').value;
+  const data={name,kapt:document.getElementById('f-kapt').value.trim(),integrator:document.getElementById('f-integrator').value.trim(),stage,stageDue:document.getElementById('f-stage-due').value,status,startDate:document.getElementById('f-start').value,endDate:document.getElementById('f-end').value,estNis:+(document.getElementById('f-est-nis').dataset.raw||document.getElementById('f-est-nis').value.replace(/[^0-9]/g,''))||0,estDs:+(document.getElementById('f-est-ds').dataset.raw||document.getElementById('f-est-ds').value.replace(/[^0-9]/g,''))||0,plan1:document.getElementById('f-plan1').value,plan2:document.getElementById('f-plan2').value,maur:document.getElementById('f-maur').value,wbs:document.getElementById('f-wbs').value,emf:document.getElementById('f-emf').value,statValhof:document.getElementById('f-stat-valhof')?.value||'נדרש',statValmb:document.getElementById('f-stat-valmb')?.value||'נדרש',blockers:[...formBlockers],delivered:status==='נמסר',ownerId:me.id,ownerName:me.name,base:document.getElementById('f-base')?.value||'',updatedAt:new Date().toISOString(),msYizumStart:document.getElementById('f-ms-yizum-start')?.value||'',
+    msYizumEnd:document.getElementById('f-ms-yizum-end')?.value||'',
+    msTikhnunStart:document.getElementById('f-ms-tikhnun-start')?.value||'',
+    msTikhnunEnd:document.getElementById('f-ms-tikhnun-end')?.value||'',
+    msHitkashrutStart:document.getElementById('f-ms-hitkashrut-start')?.value||'',
+    msHitkashrutEnd:document.getElementById('f-ms-hitkashrut-end')?.value||'',
+    msBitsuStart:document.getElementById('f-ms-bitsu-start')?.value||'',
+    msBitsuEnd:document.getElementById('f-ms-bitsu-end')?.value||'',
+  };
+  if(!editId){data.originalStageDue=data.stageDue||'';data.createdAt=new Date().toISOString();}
+  try{
+    if(editId){
+      // Check if actual dates changed → send notifications
+      const oldP=projects.find(x=>x.id===editId);
+      const actualFields=['msTikhnunActual','msBitsuStartActual','msBitsuEndActual'];
+      const fieldNames={'msTikhnunActual':'סיום תכנון בפועל','msBitsuStartActual':'תחילת ביצוע בפועל','msBitsuEndActual':'סיום ביצוע בפועל'};
+      const changes=actualFields.filter(f=>data[f]&&data[f]!==(oldP?.[f]||''));
+      if(changes.length>0){
+        const histEntry={
+          date:new Date().toISOString(),
+          updatedBy:me.name,
+          changes:changes.map(f=>({field:fieldNames[f],oldVal:oldP?.[f]||'—',newVal:data[f]}))
+        };
+        data.milestoneHistory=[...(oldP?.milestoneHistory||[]),histEntry];
+      }
+      await updateDoc(doc(db,'projects',editId),data);
+      if(changes.length>0) notifyMilestoneUpdate(data);
+      showToast('✅ עודכן');
+    }
+    else{await addDoc(colProjects,data);showToast('✅ פרויקט נוסף');}
+    closeModal('modal-add');
+  }catch(e){showToast('❌ שגיאה בשמירה');}
+};
+
+window.openDetail=id=>{
+  detailId=id;const p=projects.find(x=>x.id===id);if(!p)return;
+  const dl=daysLabel(p.stageDue);
+  const approved=extensions.filter(e=>e.projectId===id&&e.status==='approved');
+  const hasPend=extensions.some(e=>e.projectId===id&&e.status==='pending');
+  const canExt=!hasPend&&!p.delivered&&(me?.role==='ramah'||p.ownerId===me?.id);
+  document.getElementById('detail-sticky-name').textContent=p.name;
+  document.getElementById('detail-content').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+      <div><div style="font-size:17px;font-weight:700">${p.name}</div><div style="font-size:12px;color:var(--text2);margin-top:3px">אחראי: ${uName(p.ownerId)}</div></div>
+      ${sBadge(p.status)}
+    </div>
+    <div class="det-section"><div class="det-section-title">🏷️ זיהוי</div>
+      <div class="det-row"><span class="det-key">קפ"ט בינוי</span><span class="det-val">${p.kapt||'—'}</span></div>
+      <div class="det-row"><span class="det-key">אינטגרטור</span><span class="det-val">${p.integrator||'—'}</span></div>
+      <div class="det-row"><span class="det-key">מספר דרישה</span><span class="det-val">${p.reqNum||'—'}</span></div>
+    </div>
+    <div class="det-section"><div class="det-section-title">📍 שלב ולו"ז</div>
+      <div class="det-row"><span class="det-key">שלב נוכחי</span><span class="det-val">${p.stage||'—'}</span></div>
+      <div class="det-row"><span class="det-key">תג"ב מקורי</span><span class="det-val" style="color:var(--green)">${fmtD(p.originalStageDue||p.stageDue)}</span></div>
+      <div class="det-row"><span class="det-key">תג"ב נוכחי</span><span class="det-val" style="color:${approved.length?'var(--amber)':'var(--text)'}">${fmtD(p.stageDue)}</span></div>
+      <div class="det-row"><span class="det-key">ימי חריגה</span><span class="det-val"><span class="badge ${dl.cls}">${dl.text}</span></span></div>
+      ${approved.length?`<div class="det-row"><span class="det-key">מספר דחיות</span><span class="det-val" style="color:var(--amber)">${approved.length}</span></div>`:''}
+    </div>
+    <div class="det-grid">
+      <div class="det-mini"><div class="det-mini-val">${fmtD(p.startDate)}</div><div class="det-mini-lbl">תחילת ביצוע</div></div>
+      <div class="det-mini"><div class="det-mini-val">${fmtD(p.endDate)}</div><div class="det-mini-lbl">גמר ביצוע</div></div>
+    </div>
+    <div class="det-section"><div class="det-section-title">💰 תקציב</div>
+      <div class="det-row"><span class="det-key">אומדן ש"ח</span><span class="det-val">${fmtNum(p.estNis)}</span></div>
+      <div class="det-row"><span class="det-key">אומדן ד"ס</span><span class="det-val">${p.estDs?fmtNum(p.estDs)+' ד"ס':'—'}</span></div>
+
+    </div>
+    <div class="det-section"><div class="det-section-title">📐 תכנון וסטטוסים</div>
+      <div class="det-row"><span class="det-key">תכנון ראשוני</span><span class="det-val">${p.plan1||'—'}</span></div>
+      <div class="det-row"><span class="det-key">תכנון מפורט</span><span class="det-val">${p.plan2||'—'}</span></div>
+      <div class="det-row"><span class="det-key">סבב מאו"רים</span><span class="det-val">${maurBadge(p.maur)}</span></div>
+      <div class="det-row"><span class="det-key">WBS</span><span class="det-val">${existBadge(p.wbs)}</span></div>
+      <div class="det-row"><span class="det-key">EMF</span><span class="det-val">${existBadge(p.emf)}</span></div>
+    </div>
+    <div class="det-section"><div class="det-section-title">📋 סטטוטוריקה</div>
+      <div class="det-row"><span class="det-key">ולחו"ף</span><span class="det-val">${statBadge(p.statValhof)}</span></div>
+      <div class="det-row"><span class="det-key">ולמ"ב</span><span class="det-val">${statBadge(p.statValmb)}</span></div>
+    </div>
+    ${p.blockers&&p.blockers.length?`<div class="det-section"><div class="det-section-title">⚠️ חסמים</div>${p.blockers.map(b=>`<div class="blocker-item" style="margin-bottom:6px"><span class="blocker-text">${b}</span></div>`).join('')}</div>`:''}`;
+
+  const existingContent2 = document.getElementById('detail-content').innerHTML;
+
+  // Build Gantt
+  const phases=[
+    {key:'msYizum',name:'ייזום',color:'#4f8ef7'},
+    {key:'msTikhnun',name:'תכנון',color:'#2ecc8a'},
+    {key:'msHitkashrut',name:'התקשרות',color:'#f5a623'},
+    {key:'msBitsu',name:'ביצוע',color:'#a78bfa'},
+  ];
+  const hasMilestones = phases.some(ph=>p[ph.key]);
+  let ganttHtml='';
+  if(hasMilestones){
+    const dates=phases.flatMap(ph=>[p[ph.start],p[ph.end]]).filter(Boolean).map(d=>new Date(d));
+    const minDate=new Date(Math.min(...dates.map(d=>d.getTime())));
+    const maxDate=new Date(Math.max(...dates.map(d=>d.getTime())));
+    minDate.setDate(1);
+    const totalDays=Math.max((maxDate-minDate)/86400000+30, 90);
+    const today=new Date();
+    const todayPct=Math.min(100,Math.max(0,(today-minDate)/86400000/totalDays*100));
+    const months=[];
+    const monthYears=[];
+    const cur2=new Date(minDate);
+    while(cur2<=maxDate){
+      months.push(cur2.toLocaleDateString('he-IL',{month:'short'}));
+      monthYears.push(cur2.getFullYear());
+      cur2.setMonth(cur2.getMonth()+1);
+    }
+    // Build year header groups
+    const yearGroups={};
+    monthYears.forEach(y=>{yearGroups[y]=(yearGroups[y]||0)+1;});
+    const yearHeaderHtml=Object.entries(yearGroups).map(([y,count])=>
+      `<div style="flex:${count};text-align:center;font-size:9px;font-weight:700;color:var(--accent);border-left:1px solid rgba(79,142,247,0.2);border-bottom:1px solid rgba(79,142,247,0.2);padding:1px 0">${y}</div>`
+    ).join('');
+
+    const monthCols=months.map(m=>`<div class="gantt-month-cell">${m}</div>`).join('');
+
+    // Gantt: each phase has start+end bar. Red overrun if end is past today.
+    const bars=phases.map(ph=>{
+      const startDate=p[ph.start]?new Date(p[ph.start]):null;
+      const endDate=p[ph.end]?new Date(p[ph.end]):null;
+      const hasAny=startDate||endDate;
+
+      if(!hasAny) return `<div class="gantt-row">
+        <div class="gantt-name" style="color:var(--text3);font-style:italic">${ph.name}</div>
+        <div class="gantt-track" style="position:relative">
+          ${Array(months.length).fill('<div class="gantt-track-cell"></div>').join('')}
+          <div style="position:absolute;inset:0;display:flex;align-items:center;padding:0 6px">
+            <span style="font-size:9px;color:var(--text3);font-style:italic">אין תאריך</span>
+          </div>
+          <div class="gantt-today" style="left:${todayPct.toFixed(1)}%"></div>
+        </div></div>`;
+
+      const s=startDate||endDate;
+      const e=endDate||startDate;
+      const barLeft=Math.max(0,(s-minDate)/86400000/totalDays*100);
+      const barWidth=Math.max(1.5,(e-s)/86400000/totalDays*100);
+      const isOverdue=e>today; // end is in future (but was supposed to be done - detect via today crossing)
+      const isDone=e<=today;
+
+      let barHtml='';
+      if(isOverdue){
+        // Split: normal up to today, red from today to end
+        const normalW=Math.max(0,(today-s)/86400000/totalDays*100);
+        const redLeft=Math.max(0,(today-minDate)/86400000/totalDays*100);
+        const redW=Math.max(1,(e-today)/86400000/totalDays*100);
+        const days=Math.round((e-today)/86400000);
+        barHtml=`
+          ${normalW>0.5?`<div class="gantt-bar" style="left:${barLeft.toFixed(1)}%;width:${normalW.toFixed(1)}%;background:${ph.color};opacity:0.7;border-radius:4px 0 0 4px"><span class="gantt-bar-label">${ph.name}</span></div>`:''}
+          <div style="position:absolute;left:${redLeft.toFixed(1)}%;width:${redW.toFixed(1)}%;height:18px;background:#f05252;opacity:0.9;border-radius:0 4px 4px 0;display:flex;align-items:center;justify-content:center;z-index:3">
+            <span style="font-size:7px;font-weight:700;color:#fff;white-space:nowrap">+${days}י׳ ⚠</span>
+          </div>`;
+      } else {
+        barHtml=`<div class="gantt-bar" style="left:${barLeft.toFixed(1)}%;width:${barWidth.toFixed(1)}%;background:${ph.color};opacity:0.6"><span class="gantt-bar-label">${ph.name} ✓</span></div>`;
+      }
+
+      return `<div class="gantt-row">
+        <div class="gantt-name" style="color:${isOverdue?'#f05252':'var(--text3)'}">${ph.name}${isDone?' ✓':isOverdue?' ⚠':''}</div>
+        <div class="gantt-track" style="position:relative">
+          ${Array(months.length).fill('<div class="gantt-track-cell"></div>').join('')}
+          ${barHtml}
+          <div class="gantt-today" style="left:${todayPct.toFixed(1)}%"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    const msList=phases.map(ph=>{
+      const s=p[ph.start]; const e=p[ph.end];
+      return `<div class="ms-item">
+        <div class="ms-left">
+          <div class="ms-dot" style="background:${ph.color}"></div>
+          <span class="ms-name">${ph.name}</span>
+        </div>
+        <div style="text-align:left;font-size:11px">
+          ${s||e?`<span style="color:${ph.color}">${s?fmtD(s):'?'} ← → ${e?fmtD(e):'?'}</span>`:'<span style="color:var(--text3)">לא הוזן</span>'}
+        </div>
+      </div>`;
+    }).join('');
+
+    const ganttLegend=`<div class="gantt-legend">
+      <div class="gantt-legend-item"><div class="gantt-legend-dot" style="background:var(--text3)"></div>הושלם</div>
+      <div class="gantt-legend-item"><div class="gantt-legend-dot" style="background:var(--accent)"></div>בתהליך</div>
+      <div class="gantt-legend-item"><div class="gantt-legend-dot" style="background:#f05252"></div>חריגה</div>
+    </div>`;
+    ganttHtml+=`<div class="gantt-section"><div class="det-section-title">📅 גאנט אבני דרך</div><div class="gantt-wrap"><div class="gantt-inner">${yearRow}${monthRow}${bars}</div></div><div class="ms-section">${msList}</div>${ganttLegend}</div>`;
+  }
+  const existingContent2 = document.getElementById('detail-content').innerHTML;
+  document.getElementById('detail-content').innerHTML = existingContent2 + ganttHtml;
+  // History
+  let historyHtml='';
+  if(p.milestoneHistory?.length){
+    historyHtml=`<div class="gantt-section" style="margin-top:14px"><div class="det-section-title">📋 היסטוריית עדכוני תאריכים</div>${p.milestoneHistory.slice().reverse().map(h=>`<div class="hist-item" style="margin-bottom:6px"><div class="hist-date-lbl">${fmtD(h.date)} · ${h.updatedBy}</div>${h.changes.map(c=>`<div class="hist-body" style="margin-top:3px">${c.field}: <span style="color:var(--text3)">${fmtD(c.oldVal)}</span> → <span style="color:var(--accent)">${fmtD(c.newVal)}</span></div>`).join('')}</div>`).join('')}</div>`;
+  }
+  document.getElementById('detail-content').innerHTML += historyHtml;
+}
+
+window.addEventListener('online',()=>{document.getElementById('offline-bar').classList.remove('show');document.getElementById('sync-dot').classList.remove('off');showToast('✅ חזרת לרשת');});
+window.addEventListener('offline',()=>{document.getElementById('offline-bar').classList.add('show');document.getElementById('sync-dot').classList.add('off');});
+if(!navigator.onLine){document.getElementById('offline-bar').classList.add('show');document.getElementById('sync-dot').classList.add('off');}
+</script>
+<script>if('serviceWorker'in navigator){navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(()=>{});navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
+</body>
+</html>
